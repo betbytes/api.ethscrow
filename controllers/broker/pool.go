@@ -2,33 +2,33 @@ package broker
 
 import "log"
 
-var Pools = make(map[string]*Pool)
+var ActivePools = make(map[string]*PoolComm)
 
-type Pool struct {
+type PoolComm struct {
 	Register   chan *Client
 	Unregister chan *Client
 	Clients    map[*Client]bool
 	Broadcast  chan *Message
 }
 
-func NewPool(id string) *Pool {
-	if _, ok := Pools[id]; ok {
-		return Pools[id]
+func NewPool(id string) *PoolComm {
+	if _, ok := ActivePools[id]; ok {
+		return ActivePools[id]
 	}
 
-	Pools[id] = &Pool{
+	ActivePools[id] = &PoolComm{
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		Clients:    make(map[*Client]bool),
 		Broadcast:  make(chan *Message),
 	}
 
-	Pools[id].Start()
+	ActivePools[id].Start()
 
-	return Pools[id]
+	return ActivePools[id]
 }
 
-func (p *Pool) Start() {
+func (p *PoolComm) Start() {
 	for {
 		var err error
 		select {
@@ -65,6 +65,6 @@ func (p *Pool) Start() {
 	}
 }
 
-func (p *Pool) Log() {
+func (p *PoolComm) Log() {
 
 }

@@ -4,6 +4,7 @@ import (
 	"api.ethscrow/routes"
 	"api.ethscrow/utils"
 	"api.ethscrow/utils/database"
+	"api.ethscrow/utils/session"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -33,6 +34,7 @@ func createRoute() *chi.Mux {
 
 	router.Route("/", func(r chi.Router) {
 		r.Mount("/broker", routes.BrokerRoutes())
+		r.Mount("/user", routes.UserRoutes())
 	})
 
 	return router
@@ -48,7 +50,8 @@ func main() {
 		log.Println(err)
 		return
 	}
-
+	
+	session.InitSessionStore()
 	router := createRoute()
 
 	walkF := func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {

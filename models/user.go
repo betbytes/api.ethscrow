@@ -5,15 +5,9 @@ import (
 	"context"
 )
 
-const existSQL = "SELECT exists(SELECT 1 FROM users where username=$1)"
-const registerSQL = "INSERT INTO users VALUES ($1, $2, $3)"
-const loginSQL = "SELECT email, password, public_key FROM users WHERE username=$1"
-
 type User struct {
 	Username  string `json:"username,omitempty"`
-	Email     string `json:"email,omitempty"`
-	PublicKey string `json:"publicKey,omitempty"`
-	Token     string `json:"token,omitempty"`
+	PublicKey []byte `json:"publicKey,omitempty"`
 }
 
 type Friend struct {
@@ -21,23 +15,40 @@ type Friend struct {
 	PublicKey string `json:"publicKey,omitempty"`
 }
 
+const existSQL = "SELECT username, public_key FROM users WHERE username=$1)"
+
 func (u *User) Exists() (bool, error) {
-	var exists bool
-	if err := database.DB.QueryRow(context.Background(), existSQL, u.Username).Scan(&exists); err != nil {
-		return true, err
+	if err := database.DB.QueryRow(context.Background(), existSQL, u.Username).Scan(&u.Username, &u.PublicKey); err != nil {
+		return false, err
 	}
-	return exists, nil
+	return true, nil
 }
+
+const registerSQL = "INSERT INTO users VALUES ($1, $2, $3)"
 
 func (u *User) Register() error {
 	_, err := database.DB.Exec(context.Background(), registerSQL, u.Username, u.PublicKey)
 	return err
 }
 
-func (u *User) Login() error {
-	return nil
-}
+const getFriends = "SELECT u.username, u.public_key FROM friendships f RIGHT JOIN users u on f.friend = u.username WHERE f.user=$1"
 
 func (u *User) GetFriends() ([]Friend, error) {
-	return nil, nil
+	rows, err := database.DB.Query(context.Background(), getFriends, u.Username)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var friends []Friend
+
+	for rows.Next() {
+		var friend Friend
+		if err = rows.Scan(&friend.Username, &friend.PublicKey); err != nil {
+			return nil, err
+		}
+		friends = append(friends, friend)
+	}
+
+	return friends, nil
 }
