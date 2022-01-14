@@ -1,6 +1,9 @@
 package broker
 
-import "log"
+import (
+	"api.ethscrow/models"
+	"log"
+)
 
 var ActivePools = make(map[string]*PoolComm)
 
@@ -9,11 +12,12 @@ type PoolComm struct {
 	Unregister chan *Client
 	Clients    map[*Client]bool
 	Broadcast  chan *Message
+	Pool       *models.Pool
 }
 
-func NewPool(id string) *PoolComm {
+func NewPool(id string) (*PoolComm, bool) {
 	if _, ok := ActivePools[id]; ok {
-		return ActivePools[id]
+		return ActivePools[id], true
 	}
 
 	ActivePools[id] = &PoolComm{
@@ -25,7 +29,7 @@ func NewPool(id string) *PoolComm {
 
 	ActivePools[id].Start()
 
-	return ActivePools[id]
+	return ActivePools[id], false
 }
 
 func (p *PoolComm) Start() {
@@ -44,12 +48,19 @@ func (p *PoolComm) Start() {
 		case client := <-p.Unregister:
 			delete(p.Clients, client)
 
+			empty := true
 			for client, _ = range p.Clients {
 				err = client.Conn.WriteJSON(&DisconnectBody{
 					Type: Disconnect,
 					User: client.ID,
 				})
+				empty = false
 			}
+
+			if empty {
+				goto Close // Although not ideal, it is reasonable to use goto to exit loop
+			}
+
 			break
 		case message := <-p.Broadcast:
 			for client, _ := range p.Clients {
@@ -63,6 +74,8 @@ func (p *PoolComm) Start() {
 			log.Println(err)
 		}
 	}
+Close:
+	defer delete(ActivePools, p.Pool.ID)
 }
 
 func (p *PoolComm) Log() {

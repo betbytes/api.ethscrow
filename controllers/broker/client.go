@@ -8,9 +8,9 @@ import (
 )
 
 type Client struct {
-	ID   string
-	Conn *websocket.Conn
-	Pool *PoolComm
+	ID       string
+	Conn     *websocket.Conn
+	PoolComm *PoolComm
 }
 
 type MessageEnum int
@@ -65,7 +65,7 @@ func (m *Message) String() string {
 
 func (c *Client) Read() {
 	defer func() {
-		c.Pool.Unregister <- c
+		c.PoolComm.Unregister <- c
 		c.Conn.Close()
 	}()
 
@@ -84,12 +84,12 @@ func (c *Client) Read() {
 			chat := ChatBody{}
 			if json.Unmarshal(msg.Body, &chat) == nil {
 				if chat.Important {
-					c.Pool.Log()
+					c.PoolComm.Log()
 				}
 			}
 		}
 
-		c.Pool.Broadcast <- msg
+		c.PoolComm.Broadcast <- msg
 		log.Printf("Forwarded: %+v\n", msg)
 	}
 }
