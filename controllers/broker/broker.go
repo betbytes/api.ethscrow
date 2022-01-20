@@ -12,6 +12,7 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
+// ConnectToPool /connect/{roomId} - Authenticated
 func ConnectToPool(w http.ResponseWriter, r *http.Request) {
 	user := r.Context().Value("user").(models.User)
 	pool := &models.Pool{
