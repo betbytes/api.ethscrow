@@ -50,7 +50,7 @@ func main() {
 		log.Println(err)
 		return
 	}
-	
+
 	session.InitSessionStore()
 	router := createRoute()
 

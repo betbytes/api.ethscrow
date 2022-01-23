@@ -9,17 +9,43 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/hex"
+	"github.com/go-chi/chi/v5"
 	"math/big"
 	"net/http"
 )
 
 var Logins = make(map[string][]byte)
 
+func CreateUser(w http.ResponseWriter, r *http.Request) {
+	user := &models.User{}
+
+	if err := utils.ParseRequestBody(r, user); err != nil || user.Username == "" || user.PublicKey == "" {
+		utils.Error(w, http.StatusBadRequest, "Invalid request.")
+		return
+	}
+
+	if err := user.Create(); err != nil {
+		utils.Error(w, http.StatusInternalServerError, "Could not create user.")
+		return
+	}
+
+	session, _ := session2.Store.Get(r, "session.id")
+	session.Values["authenticated"] = true
+	session.Values["username"] = user.Username
+	session.Values["public_key"] = user.PublicKey
+	if err := session.Save(r, w); err != nil {
+		utils.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.JSON(w, http.StatusCreated, &utils.BasicData{Data: true})
+}
+
 func RequestChallenge(w http.ResponseWriter, r *http.Request) {
 	user := &models.User{}
 
-	if err := utils.ParseRequestBody(r, user); err != nil {
-		utils.Error(w, http.StatusInternalServerError, err.Error())
+	user.Username = chi.URLParam(r, "Username")
+	if user.Username == "" {
 		return
 	}
 
@@ -36,7 +62,7 @@ func RequestChallenge(w http.ResponseWriter, r *http.Request) {
 
 	Logins[user.Username] = sHash
 
-	utils.JSON(w, http.StatusOK, nonce)
+	utils.JSON(w, http.StatusOK, &utils.BasicData{Data: nonce})
 }
 
 // SubmitChallenge /submit-challenge
@@ -68,7 +94,7 @@ func SubmitChallenge(w http.ResponseWriter, r *http.Request) {
 	rVal := new(big.Int).SetBytes(rByte)
 	sVal := new(big.Int).SetBytes(sByte)
 
-	key, err := x509.ParsePKIXPublicKey(user.PublicKey)
+	key, err := x509.ParsePKIXPublicKey([]byte(user.PublicKey))
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, err.Error())
 		return

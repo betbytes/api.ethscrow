@@ -8,7 +8,8 @@ import (
 
 func BrokerRoutes() *chi.Mux {
 	router := chi.NewRouter()
-	router.With(session.ProtectedRoute).Get("/connect/{roomId}", broker.ConnectToPool)
+	router.With(session.ProtectedRoute).Get("/connect/{PoolId}", broker.ConnectToPool)
+	router.Post("/create", broker.CreatePool)
 
 	return router
 }

@@ -2,6 +2,10 @@ package broker
 
 import (
 	"api.ethscrow/models"
+	"api.ethscrow/utils/database"
+	"context"
+	"errors"
+	"github.com/google/uuid"
 	"log"
 )
 
@@ -78,6 +82,15 @@ Close:
 	defer delete(ActivePools, p.Pool.ID)
 }
 
-func (p *PoolComm) Log() {
+const logMessage = "INSERT INTO chats(id, pool_id, message) VALUES($1, $2, $3)"
 
+func (p *PoolComm) Log(msg string) error {
+	if msg == "" {
+		return errors.New("missing message")
+	}
+
+	id := uuid.New().String()
+
+	_, err := database.DB.Exec(context.Background(), logMessage, id, p.Pool.ID, msg)
+	return err
 }

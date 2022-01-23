@@ -8,8 +8,9 @@ import (
 
 func UserRoutes() *chi.Mux {
 	router := chi.NewRouter()
-	router.Get("/challenge", user.RequestChallenge)
-	router.Post("/submit-challenge", user.SubmitChallenge)
+	router.Post("/create", user.CreateUser)
+	router.Get("/challenge/{Username}", user.RequestChallenge)
+	router.Post("/challenge", user.SubmitChallenge)
 	router.With(session.ProtectedRoute).Post("/logout", user.Logout)
 
 	return router

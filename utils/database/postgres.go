@@ -1,6 +1,7 @@
 package database
 
 import (
+	"api.ethscrow/utils"
 	"context"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"log"
@@ -9,7 +10,7 @@ import (
 var DB *pgxpool.Pool
 
 func ConnectToDatabase() error {
-	db, err := pgxpool.Connect(context.Background(), "")
+	db, err := pgxpool.Connect(context.Background(), utils.DATABASE_URL)
 	if err != nil {
 		return err
 	}

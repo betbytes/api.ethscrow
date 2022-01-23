@@ -19,6 +19,8 @@ const (
 	Connect = iota
 	Disconnect
 	Chat
+	PoolDetails
+	RefreshBalance
 	Offer
 	Answer
 	OfferCandidate
@@ -80,13 +82,18 @@ func (c *Client) Read() {
 			return
 		}
 
-		if msg.Type == Chat {
+		switch msg.Type {
+		case Chat:
 			chat := ChatBody{}
 			if json.Unmarshal(msg.Body, &chat) == nil {
 				if chat.Important {
-					c.PoolComm.Log()
+					_ = c.PoolComm.Log(chat.Message)
 				}
 			}
+			break
+		case RefreshBalance:
+			msg.Body = []byte{}
+			break
 		}
 
 		c.PoolComm.Broadcast <- msg
