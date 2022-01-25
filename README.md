@@ -23,7 +23,7 @@
 ```sql
 CREATE TABLE users(
     username varchar(20) not null primary key,
-    public_key char(126) not null unique,
+    public_key bytea not null unique,
     email varchar(50),
     created_at timestamp default now()
 );
@@ -40,7 +40,8 @@ CREATE TABLE pools(
     created_at timestamp default now(),
     reason varchar(200) not null,
     balance decimal default 0 not null,
-    balance_last_updated timestamp
+    balance_last_updated timestamp,
+    accepted bool default false
 );
 
 CREATE TABLE chats(

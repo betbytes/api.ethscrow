@@ -10,7 +10,9 @@ func UserRoutes() *chi.Mux {
 	router := chi.NewRouter()
 	router.Post("/create", user.CreateUser)
 	router.Get("/challenge/{Username}", user.RequestChallenge)
-	router.Post("/challenge", user.SubmitChallenge)
+	router.Post("/challenge/{Username}", user.SubmitChallenge)
+	router.Get("/{Username}", user.PublicKey)
+	router.With(session.ProtectedRoute).Get("/pool", user.AllPools)
 	router.With(session.ProtectedRoute).Post("/logout", user.Logout)
 
 	return router

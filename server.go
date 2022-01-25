@@ -8,7 +8,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-
 	"log"
 	"net/http"
 )
@@ -23,7 +22,7 @@ func createRoute() *chi.Mux {
 			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 			ExposedHeaders:   []string{"Link"},
-			AllowCredentials: false,
+			AllowCredentials: true,
 			MaxAge:           300,
 		}),
 		middleware.Logger,
@@ -63,4 +62,5 @@ func main() {
 	}
 
 	log.Fatal(http.ListenAndServe(":"+utils.PORT, router))
+	//log.Fatal(http.ListenAndServeTLS(":"+utils.PORT, "server.cert", "server.key", router))
 }

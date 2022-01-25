@@ -12,6 +12,8 @@ var Store = sessions.NewCookieStore([]byte(utils.SESSION_KEY))
 
 func InitSessionStore() {
 	Store.Options.HttpOnly = true
+	Store.Options.Secure = true
+	Store.Options.SameSite = http.SameSiteNoneMode
 }
 
 func ProtectedRoute(next http.Handler) http.Handler {

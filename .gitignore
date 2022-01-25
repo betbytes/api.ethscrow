@@ -18,3 +18,5 @@
 .vscode/
 
 .env
+server.cert
+server.key

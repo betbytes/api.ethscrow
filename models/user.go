@@ -30,7 +30,7 @@ func (u *User) Create() error {
 	return err
 }
 
-const existSQL = "SELECT username, public_key, email FROM users WHERE username=$1)"
+const existSQL = "SELECT username, public_key, email FROM users WHERE username=$1"
 
 func (u *User) Exists() (bool, error) {
 	if u.Username == "" {
@@ -75,4 +75,36 @@ func (u *User) GetFriends() ([]Friend, error) {
 	}
 
 	return friends, nil
+}
+
+const getPublicKey = "SELECT public_key FROM users WHERE username=$1"
+
+func (u *User) GetPublicKey() error {
+	if err := database.DB.QueryRow(context.Background(), getPublicKey, u.Username).Scan(&u.PublicKey); err != nil {
+		return err
+	}
+	return nil
+}
+
+const getAllPools = "SELECT * FROM pools WHERE bettor_username=$1 OR caller_username=$1 OR mediator_username=$1"
+
+func (u *User) GetAllPools() ([]Pool, error) {
+
+	rows, err := database.DB.Query(context.Background(), getAllPools, u.Username)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var pools []Pool
+
+	for rows.Next() {
+		var p Pool
+		if err = rows.Scan(&p.ID, &p.Address, &p.Mediator, &p.Bettor, &p.CallerState, &p.BetterState, &p.CallerState, &p.ThresholdKey, &p.CreatedAt, &p.Reason, &p.Balance, &p.BalanceLastUpdated, &p.Accepted); err != nil {
+			return nil, err
+		}
+		pools = append(pools, p)
+	}
+
+	return pools, nil
 }

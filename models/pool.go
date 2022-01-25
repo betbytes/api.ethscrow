@@ -23,6 +23,7 @@ type Pool struct {
 	CreatedAt          time.Time  `json:"created_at,omitempty"`
 	Balance            float64    `json:"balance,omitempty"`
 	BalanceLastUpdated *time.Time `json:"balance_last_updated,omitempty"`
+	Accepted           bool       `json:"accepted,omitempty"`
 }
 
 const poolExists = "SELECT * WHERE id=$1"
@@ -33,7 +34,7 @@ func (p *Pool) Exists() (bool, error) {
 		return false, errors.New("missing pool id")
 	}
 	if err := database.DB.QueryRow(context.Background(), poolExists, p.ID).
-		Scan(&p.ID, &p.Address, &p.Mediator, &p.Bettor, &p.CallerState, &p.BetterState, &p.CallerState, &p.ThresholdKey, &p.CreatedAt, &p.Reason, &p.Balance, &p.BalanceLastUpdated); err != nil {
+		Scan(&p.ID, &p.Address, &p.Mediator, &p.Bettor, &p.CallerState, &p.BetterState, &p.CallerState, &p.ThresholdKey, &p.CreatedAt, &p.Reason, &p.Balance, &p.BalanceLastUpdated, &p.Accepted); err != nil {
 		return false, err
 	}
 
@@ -73,7 +74,7 @@ func (p *Pool) Close() error {
 	if p.ID == "" {
 		return errors.New("missing pool id")
 	}
-	_, err := database.DB.Exec(context.Background(), closePool, p.ID)
-	_, err = database.DB.Exec(context.Background(), clearChats, p.ID)
+	_, err := database.DB.Exec(context.Background(), clearChats, p.ID)
+	_, err = database.DB.Exec(context.Background(), closePool, p.ID)
 	return err
 }
