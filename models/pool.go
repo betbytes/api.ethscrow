@@ -78,3 +78,10 @@ func (p *Pool) Close() error {
 	_, err = database.DB.Exec(context.Background(), closePool, p.ID)
 	return err
 }
+
+const updatePool = "UPDATE pools SET bettor_state=$2, caller_state=$3, threshold_key=$4, accepted=$5 WHERE id=$1"
+
+func (p *Pool) Update() error {
+	_, err := database.DB.Exec(context.Background(), updatePool, p.ID, p.BetterState, p.CallerState, p.ThresholdKey, p.Accepted)
+	return err
+}

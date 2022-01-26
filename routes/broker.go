@@ -11,6 +11,9 @@ func BrokerRoutes() *chi.Mux {
 	router.With(session.ProtectedRoute).Get("/{PoolId}", broker.ConnectToPool)
 	router.Post("/create", broker.CreatePool)
 	router.Delete("/{PoolId}", broker.DeletePool)
+	router.With(session.ProtectedRoute).Post("/{PoolId}", broker.UpdatePoolState)
+	router.With(session.ProtectedRoute).Post("/{PoolId}/resolve", broker.ResolveConflict)
+	router.With(session.ProtectedRoute).Get("/{PoolId}/accept", broker.AcceptPool)
 
 	return router
 }

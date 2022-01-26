@@ -5,3 +5,8 @@ type stateChangeRequest struct {
 	ThresholdKey *string `json:"threshold_key,omitempty"`
 	Conflict     *bool   `json:"conflict,omitempty"`
 }
+
+type resolveConflictRequest struct {
+	WinnerUsername string `json:"winner_username,omitempty"`
+	ThresholdKey   string `json:"threshold_key,omitempty"`
+}
