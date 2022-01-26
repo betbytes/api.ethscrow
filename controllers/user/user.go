@@ -1,6 +1,7 @@
 package user
 
 import (
+	"api.ethscrow/controllers/broker"
 	"api.ethscrow/models"
 	"api.ethscrow/utils"
 	session2 "api.ethscrow/utils/session"
@@ -35,14 +36,16 @@ func AllPools(w http.ResponseWriter, r *http.Request) {
 	var resp poolResponse
 
 	for _, pool := range pools {
-		if pool.Accepted {
+		if pool.CallerState == broker.LostState || pool.BetterState == broker.LostState {
+			resp.Completed = append(resp.Completed, pool)
+		} else if pool.Accepted {
 			resp.Active = append(resp.Active, pool)
-			continue
-		}
-		if pool.Bettor == user.Username {
-			resp.Active = append(resp.Sent, pool)
+		} else if *pool.Mediator == user.Username {
+			resp.Resolve = append(resp.Resolve, pool)
+		} else if pool.Bettor == user.Username {
+			resp.Sent = append(resp.Sent, pool)
 		} else {
-			resp.Active = append(resp.Inbox, pool)
+			resp.Inbox = append(resp.Inbox, pool)
 		}
 	}
 
