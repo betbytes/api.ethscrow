@@ -4,9 +4,10 @@ import (
 	"api.ethscrow/models"
 	"api.ethscrow/utils/database"
 	"context"
+	"encoding/json"
 	"errors"
-	"github.com/google/uuid"
 	"log"
+	"sync"
 )
 
 var ActivePools = make(map[string]*PoolComm)
@@ -14,7 +15,7 @@ var ActivePools = make(map[string]*PoolComm)
 type PoolComm struct {
 	Register   chan *Client
 	Unregister chan *Client
-	Clients    map[*Client]bool
+	Clients    map[*Client]*sync.Mutex
 	Broadcast  chan *Message
 	Pool       *models.Pool
 }
@@ -27,7 +28,7 @@ func NewPool(id string) (*PoolComm, bool) {
 	ActivePools[id] = &PoolComm{
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
-		Clients:    make(map[*Client]bool),
+		Clients:    make(map[*Client]*sync.Mutex),
 		Broadcast:  make(chan *Message),
 	}
 
@@ -41,12 +42,22 @@ func (p *PoolComm) Start() {
 		var err error
 		select {
 		case client := <-p.Register:
-			p.Clients[client] = true
-			for client, _ = range p.Clients {
-				err = client.Conn.WriteJSON(&ConnectBody{
-					Type: Connect,
-					User: client.ID,
-				})
+			p.Clients[client] = &sync.Mutex{}
+			for c, _ := range p.Clients {
+				p.Clients[c].Lock()
+				if c == client {
+					poolJson, _ := json.Marshal(p.Pool)
+					err = c.Conn.WriteJSON(&Message{
+						Type: PoolDetails,
+						Body: poolJson,
+					})
+				} else {
+					err = c.Conn.WriteJSON(&ConnectBody{
+						Type:     Connect,
+						Username: client.Username,
+					})
+				}
+				p.Clients[c].Unlock()
 			}
 			break
 		case client := <-p.Unregister:
@@ -54,10 +65,12 @@ func (p *PoolComm) Start() {
 
 			empty := true
 			for client, _ = range p.Clients {
+				p.Clients[client].Lock()
 				err = client.Conn.WriteJSON(&DisconnectBody{
-					Type: Disconnect,
-					User: client.ID,
+					Type:     Disconnect,
+					Username: client.Username,
 				})
+				p.Clients[client].Unlock()
 				empty = false
 			}
 
@@ -69,7 +82,9 @@ func (p *PoolComm) Start() {
 		case message := <-p.Broadcast:
 			for client, _ := range p.Clients {
 				if client != message.From {
+					p.Clients[client].Lock()
 					err = client.Conn.WriteJSON(message)
+					p.Clients[client].Unlock()
 				}
 			}
 		}
@@ -82,15 +97,13 @@ Close:
 	defer delete(ActivePools, p.Pool.ID)
 }
 
-const logMessage = "INSERT INTO chats(id, pool_id, message) VALUES($1, $2, $3)"
+const logMessage = "INSERT INTO chats(id, pool_id, message, from_username) VALUES($1, $2, $3, $4)"
 
-func (p *PoolComm) Log(msg string) error {
-	if msg == "" {
+func (p *PoolComm) Log(chat *models.Chat) error {
+	if chat.Message == "" {
 		return errors.New("missing message")
 	}
 
-	id := uuid.New().String()
-
-	_, err := database.DB.Exec(context.Background(), logMessage, id, p.Pool.ID, msg)
+	_, err := database.DB.Exec(context.Background(), logMessage, chat.ID, p.Pool.ID, chat.Message, chat.From)
 	return err
 }

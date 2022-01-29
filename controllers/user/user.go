@@ -35,6 +35,12 @@ func AllPools(w http.ResponseWriter, r *http.Request) {
 
 	var resp poolResponse
 
+	resp.Active = make([]models.Pool, 0)
+	resp.Completed = make([]models.Pool, 0)
+	resp.Resolve = make([]models.Pool, 0)
+	resp.Sent = make([]models.Pool, 0)
+	resp.Inbox = make([]models.Pool, 0)
+
 	for _, pool := range pools {
 		if pool.CallerState == broker.LostState || pool.BetterState == broker.LostState {
 			resp.Completed = append(resp.Completed, pool)

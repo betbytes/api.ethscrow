@@ -1,14 +1,16 @@
 package broker
 
 import (
+	"api.ethscrow/models"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"log"
 )
 
 type Client struct {
-	ID       string
+	Username string
 	Conn     *websocket.Conn
 	PoolComm *PoolComm
 }
@@ -29,14 +31,14 @@ const (
 
 // ConnectBody body of connect message type
 type ConnectBody struct {
-	Type MessageEnum `json:"type"`
-	User string      `json:"user"`
+	Type     MessageEnum `json:"type"`
+	Username string      `json:"username"`
 }
 
 // DisconnectBody body of connect message type
 type DisconnectBody struct {
-	Type MessageEnum `json:"type"`
-	User string      `json:"user"`
+	Type     MessageEnum `json:"type"`
+	Username string      `json:"username"`
 }
 
 // ChatBody body of connect message type
@@ -84,12 +86,17 @@ func (c *Client) Read() {
 
 		switch msg.Type {
 		case Chat:
-			chat := ChatBody{}
+			chat := &models.Chat{}
+			chat.From = c.Username
+			chat.ID = uuid.New().String()
 			if json.Unmarshal(msg.Body, &chat) == nil {
 				if chat.Important {
-					_ = c.PoolComm.Log(chat.Message)
+					_ = c.PoolComm.Log(chat)
 				}
 			}
+
+			chatMarshal, _ := json.Marshal(chat)
+			msg.Body = chatMarshal
 			break
 		case RefreshBalance:
 			msg.Body = []byte{}

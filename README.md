@@ -48,6 +48,7 @@ CREATE TABLE chats(
     id char(32) not null primary key,
     pool_id char(32) not null,
     message varchar(20) not null,
-    timestamp timestamp default now()
+    timestamp timestamp default now(),
+    from_username varchar(20) not null references users(username)
 );
 ```

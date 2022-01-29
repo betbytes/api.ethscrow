@@ -9,6 +9,14 @@ import (
 	"time"
 )
 
+type Chat struct {
+	ID        string    `json:"id,omitempty"`
+	From      string    `json:"from_username,omitempty"`
+	Message   string    `json:"message,omitempty"`
+	Timestamp time.Time `json:"timestamp"`
+	Important bool      `json:"important,omitempty"`
+}
+
 type Pool struct {
 	ID                 string     `json:"id,omitempty"`
 	Address            *string    `json:"address,omitempty"`
@@ -19,7 +27,7 @@ type Pool struct {
 	Mediator           *string    `json:"mediator_username,omitempty"`
 	ThresholdKey       *string    `json:"threshold_key,omitempty"`
 	Reason             string     `json:"reason,omitempty"`
-	Chats              []string   `json:"chats,omitempty"`
+	Chats              []Chat     `json:"chats"`
 	CreatedAt          time.Time  `json:"created_at,omitempty"`
 	Balance            float64    `json:"balance,omitempty"`
 	BalanceLastUpdated *time.Time `json:"balance_last_updated,omitempty"`
@@ -27,7 +35,7 @@ type Pool struct {
 }
 
 const poolExists = "SELECT * FROM pools WHERE id=$1"
-const getChats = "SELECT message FROM chats WHERE pool_id=$1 ORDER BY timestamp"
+const getChats = "SELECT id, message, from, timestamp FROM chats WHERE pool_id=$1 ORDER BY timestamp"
 
 func (p *Pool) Exists() (bool, error) {
 	if p.ID == "" {
@@ -44,9 +52,11 @@ func (p *Pool) Exists() (bool, error) {
 	}
 	defer rows.Close()
 
+	p.Chats = make([]Chat, 0)
+
 	for rows.Next() {
-		var msg string
-		if err = rows.Scan(&msg); err != nil {
+		var msg Chat
+		if err = rows.Scan(&msg.ID, &msg.Message, &msg.From, &msg.Timestamp); err != nil {
 			return true, err
 		}
 		p.Chats = append(p.Chats, msg)

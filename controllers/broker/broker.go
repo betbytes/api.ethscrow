@@ -3,7 +3,6 @@ package broker
 import (
 	"api.ethscrow/models"
 	"api.ethscrow/utils"
-	"encoding/json"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -50,13 +49,10 @@ func ConnectToPool(w http.ResponseWriter, r *http.Request) {
 		ID: chi.URLParam(r, "PoolId"),
 	}
 
-	var exists bool
+	exists, _ := pool.Exists()
 	poolComm, active := NewPool(pool.ID)
-	if active {
-		pool = poolComm.Pool
-		exists = true
-	} else {
-		exists, _ = pool.Exists()
+	if !active {
+		poolComm.Pool = pool
 	}
 
 	if exists && (pool.Bettor != user.Username && pool.Caller != user.Username && *pool.Mediator != user.Username) {
@@ -67,25 +63,22 @@ func ConnectToPool(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !active {
+		go poolComm.Start()
+	}
+
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return
 	}
 
 	client := &Client{
+		Username: user.Username,
 		Conn:     c,
 		PoolComm: poolComm,
 	}
 
 	poolComm.Register <- client
-
-	poolJson, err := json.Marshal(pool)
-
-	poolComm.Broadcast <- &Message{
-		From: client,
-		Type: PoolDetails,
-		Body: poolJson,
-	}
 
 	client.Read()
 }
