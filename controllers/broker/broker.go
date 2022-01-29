@@ -23,8 +23,10 @@ const (
 )
 
 func CreatePool(w http.ResponseWriter, r *http.Request) {
+	user := r.Context().Value("user").(models.User)
 	pool := &models.Pool{}
-	pool.Bettor = "ahmad"
+
+	pool.Bettor = user.Username
 
 	if err := utils.ParseRequestBody(r, &pool); err != nil {
 		utils.Error(w, http.StatusInternalServerError, "Invalid")
@@ -48,12 +50,6 @@ func ConnectToPool(w http.ResponseWriter, r *http.Request) {
 		ID: chi.URLParam(r, "PoolId"),
 	}
 
-	var body map[string]string
-	if err := utils.ParseRequestBody(r, &body); err != nil {
-		utils.Error(w, http.StatusInternalServerError, "Invalid")
-		return
-	}
-
 	var exists bool
 	poolComm, active := NewPool(pool.ID)
 	if active {
@@ -63,7 +59,7 @@ func ConnectToPool(w http.ResponseWriter, r *http.Request) {
 		exists, _ = pool.Exists()
 	}
 
-	if exists && (pool.Bettor != user.Username || pool.Caller != user.Username || *pool.Mediator != user.Username) {
+	if exists && (pool.Bettor != user.Username && pool.Caller != user.Username && *pool.Mediator != user.Username) {
 		utils.Error(w, http.StatusForbidden, "You are not part of the pool.")
 		return
 	} else if !exists {
@@ -95,7 +91,7 @@ func ConnectToPool(w http.ResponseWriter, r *http.Request) {
 }
 
 func AcceptPool(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value("claims").(models.User)
+	user := r.Context().Value("user").(models.User)
 	pool := &models.Pool{
 		ID: chi.URLParam(r, "PoolId"),
 	}
@@ -120,7 +116,7 @@ func AcceptPool(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeletePool(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value("claims").(models.User)
+	user := r.Context().Value("user").(models.User)
 	pool := &models.Pool{
 		ID: chi.URLParam(r, "PoolId"),
 	}
@@ -148,7 +144,7 @@ func DeletePool(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdatePoolState(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value("claims").(models.User)
+	user := r.Context().Value("user").(models.User)
 
 	pool := &models.Pool{
 		ID: chi.URLParam(r, "PoolId"),
@@ -214,7 +210,7 @@ func UpdatePoolState(w http.ResponseWriter, r *http.Request) {
 }
 
 func ResolveConflict(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value("claims").(models.User)
+	user := r.Context().Value("user").(models.User)
 	pool := &models.Pool{
 		ID: chi.URLParam(r, "PoolId"),
 	}

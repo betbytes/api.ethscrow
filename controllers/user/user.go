@@ -25,7 +25,7 @@ func PublicKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func AllPools(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value("claims").(models.User)
+	user := r.Context().Value("user").(models.User)
 
 	pools, err := user.GetAllPools()
 	if err != nil {
@@ -40,7 +40,7 @@ func AllPools(w http.ResponseWriter, r *http.Request) {
 			resp.Completed = append(resp.Completed, pool)
 		} else if pool.Accepted {
 			resp.Active = append(resp.Active, pool)
-		} else if *pool.Mediator == user.Username {
+		} else if *pool.Mediator == user.Username && pool.BetterState == broker.WonState && pool.CallerState == broker.WonState {
 			resp.Resolve = append(resp.Resolve, pool)
 		} else if pool.Bettor == user.Username {
 			resp.Sent = append(resp.Sent, pool)

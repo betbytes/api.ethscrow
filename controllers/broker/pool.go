@@ -31,7 +31,7 @@ func NewPool(id string) (*PoolComm, bool) {
 		Broadcast:  make(chan *Message),
 	}
 
-	ActivePools[id].Start()
+	go ActivePools[id].Start()
 
 	return ActivePools[id], false
 }

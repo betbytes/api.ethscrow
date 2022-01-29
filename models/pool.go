@@ -11,11 +11,11 @@ import (
 
 type Pool struct {
 	ID                 string     `json:"id,omitempty"`
-	Address            string     `json:"address,omitempty"`
+	Address            *string    `json:"address,omitempty"`
 	Bettor             string     `json:"bettor_username,omitempty"`
-	BetterState        int8       `json:"betterState,omitempty"`
+	BetterState        int16      `json:"betterState,omitempty"`
 	Caller             string     `json:"caller_username,omitempty"`
-	CallerState        int8       `json:"callerState,omitempty"`
+	CallerState        int16      `json:"callerState,omitempty"`
 	Mediator           *string    `json:"mediator_username,omitempty"`
 	ThresholdKey       *string    `json:"threshold_key,omitempty"`
 	Reason             string     `json:"reason,omitempty"`
@@ -26,7 +26,7 @@ type Pool struct {
 	Accepted           bool       `json:"accepted,omitempty"`
 }
 
-const poolExists = "SELECT * WHERE id=$1"
+const poolExists = "SELECT * FROM pools WHERE id=$1"
 const getChats = "SELECT message FROM chats WHERE pool_id=$1 ORDER BY timestamp"
 
 func (p *Pool) Exists() (bool, error) {
@@ -34,7 +34,7 @@ func (p *Pool) Exists() (bool, error) {
 		return false, errors.New("missing pool id")
 	}
 	if err := database.DB.QueryRow(context.Background(), poolExists, p.ID).
-		Scan(&p.ID, &p.Address, &p.Mediator, &p.Bettor, &p.CallerState, &p.BetterState, &p.CallerState, &p.ThresholdKey, &p.CreatedAt, &p.Reason, &p.Balance, &p.BalanceLastUpdated, &p.Accepted); err != nil {
+		Scan(&p.ID, &p.Address, &p.Mediator, &p.Bettor, &p.Caller, &p.BetterState, &p.CallerState, &p.ThresholdKey, &p.CreatedAt, &p.Reason, &p.Balance, &p.BalanceLastUpdated, &p.Accepted); err != nil {
 		return false, err
 	}
 

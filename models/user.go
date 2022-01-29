@@ -100,7 +100,7 @@ func (u *User) GetAllPools() ([]Pool, error) {
 
 	for rows.Next() {
 		var p Pool
-		if err = rows.Scan(&p.ID, &p.Address, &p.Mediator, &p.Bettor, &p.CallerState, &p.BetterState, &p.CallerState, &p.ThresholdKey, &p.CreatedAt, &p.Reason, &p.Balance, &p.BalanceLastUpdated, &p.Accepted); err != nil {
+		if err = rows.Scan(&p.ID, &p.Address, &p.Mediator, &p.Bettor, &p.Caller, &p.BetterState, &p.CallerState, &p.ThresholdKey, &p.CreatedAt, &p.Reason, &p.Balance, &p.BalanceLastUpdated, &p.Accepted); err != nil {
 			return nil, err
 		}
 		pools = append(pools, p)
