@@ -35,7 +35,7 @@ type Pool struct {
 }
 
 const poolExists = "SELECT * FROM pools WHERE id=$1"
-const getChats = "SELECT id, message, from, timestamp FROM chats WHERE pool_id=$1 ORDER BY timestamp"
+const getChats = "SELECT id, message, from_username, timestamp FROM chats WHERE pool_id=$1 ORDER BY timestamp"
 
 func (p *Pool) Exists() (bool, error) {
 	if p.ID == "" {

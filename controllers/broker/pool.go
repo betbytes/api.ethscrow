@@ -12,12 +12,17 @@ import (
 
 var ActivePools = make(map[string]*PoolComm)
 
+type UserComm struct {
+	Client *Client
+	Mutex  *sync.Mutex
+}
+
 type PoolComm struct {
-	Register   chan *Client
-	Unregister chan *Client
-	Clients    map[*Client]*sync.Mutex
-	Broadcast  chan *Message
-	Pool       *models.Pool
+	Register    chan *Client
+	Unregister  chan *Client
+	ActiveUsers map[string]UserComm
+	Broadcast   chan *Message
+	Pool        *models.Pool
 }
 
 func NewPool(id string) (*PoolComm, bool) {
@@ -26,10 +31,10 @@ func NewPool(id string) (*PoolComm, bool) {
 	}
 
 	ActivePools[id] = &PoolComm{
-		Register:   make(chan *Client),
-		Unregister: make(chan *Client),
-		Clients:    make(map[*Client]*sync.Mutex),
-		Broadcast:  make(chan *Message),
+		Register:    make(chan *Client),
+		Unregister:  make(chan *Client),
+		ActiveUsers: make(map[string]UserComm),
+		Broadcast:   make(chan *Message),
 	}
 
 	go ActivePools[id].Start()
@@ -42,35 +47,49 @@ func (p *PoolComm) Start() {
 		var err error
 		select {
 		case client := <-p.Register:
-			p.Clients[client] = &sync.Mutex{}
-			for c, _ := range p.Clients {
-				p.Clients[c].Lock()
-				if c == client {
-					poolJson, _ := json.Marshal(p.Pool)
-					err = c.Conn.WriteJSON(&Message{
+			p.ActiveUsers[client.Username] = UserComm{client, &sync.Mutex{}}
+
+			for username, userComm := range p.ActiveUsers {
+				userComm.Mutex.Lock()
+				if username == client.Username {
+					otherUsername := p.Pool.Bettor
+					if p.Pool.Bettor == username {
+						otherUsername = p.Pool.Caller
+					}
+
+					_, otherActive := p.ActiveUsers[otherUsername]
+
+					init := &InitialBody{
+						Type:               PoolDetails,
+						Pool:               p.Pool,
+						OtherUserConnected: otherActive,
+					}
+
+					initJson, _ := json.Marshal(init)
+					err = userComm.Client.Conn.WriteJSON(&Message{
 						Type: PoolDetails,
-						Body: poolJson,
+						Body: initJson,
 					})
 				} else {
-					err = c.Conn.WriteJSON(&ConnectBody{
+					err = userComm.Client.Conn.WriteJSON(&ConnectBody{
 						Type:     Connect,
 						Username: client.Username,
 					})
 				}
-				p.Clients[c].Unlock()
+				userComm.Mutex.Unlock()
 			}
 			break
 		case client := <-p.Unregister:
-			delete(p.Clients, client)
+			delete(p.ActiveUsers, client.Username)
 
 			empty := true
-			for client, _ = range p.Clients {
-				p.Clients[client].Lock()
-				err = client.Conn.WriteJSON(&DisconnectBody{
+			for _, userComm := range p.ActiveUsers {
+				userComm.Mutex.Lock()
+				err = userComm.Client.Conn.WriteJSON(&DisconnectBody{
 					Type:     Disconnect,
 					Username: client.Username,
 				})
-				p.Clients[client].Unlock()
+				userComm.Mutex.Unlock()
 				empty = false
 			}
 
@@ -80,12 +99,13 @@ func (p *PoolComm) Start() {
 
 			break
 		case message := <-p.Broadcast:
-			for client, _ := range p.Clients {
-				if client != message.From {
-					p.Clients[client].Lock()
-					err = client.Conn.WriteJSON(message)
-					p.Clients[client].Unlock()
+			for username, userComm := range p.ActiveUsers {
+				if message.From != nil && username == *message.From {
+					continue
 				}
+				userComm.Mutex.Lock()
+				err = userComm.Client.Conn.WriteJSON(message)
+				userComm.Mutex.Unlock()
 			}
 		}
 

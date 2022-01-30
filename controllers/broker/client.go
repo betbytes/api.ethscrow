@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"log"
+	"strings"
 )
 
 type Client struct {
@@ -28,6 +29,12 @@ const (
 	OfferCandidate
 	AnswerCandidate
 )
+
+type InitialBody struct {
+	Type               MessageEnum  `json:"type"`
+	Pool               *models.Pool `json:"pool"`
+	OtherUserConnected bool         `json:"other_user_connected"`
+}
 
 // ConnectBody body of connect message type
 type ConnectBody struct {
@@ -60,7 +67,7 @@ type WebRTCInit struct {
 type Message struct {
 	Type MessageEnum     `json:"type"`
 	Body json.RawMessage `json:"body"`
-	From *Client         `json:"-"`
+	From *string         `json:"-"`
 }
 
 func (m *Message) String() string {
@@ -74,9 +81,7 @@ func (c *Client) Read() {
 	}()
 
 	for {
-		msg := &Message{
-			From: c,
-		}
+		msg := &Message{}
 
 		err := c.Conn.ReadJSON(msg)
 		if err != nil {
@@ -88,7 +93,7 @@ func (c *Client) Read() {
 		case Chat:
 			chat := &models.Chat{}
 			chat.From = c.Username
-			chat.ID = uuid.New().String()
+			chat.ID = strings.ReplaceAll(uuid.New().String(), "-", "")
 			if json.Unmarshal(msg.Body, &chat) == nil {
 				if chat.Important {
 					_ = c.PoolComm.Log(chat)
