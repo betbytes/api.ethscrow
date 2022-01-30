@@ -41,7 +41,8 @@ CREATE TABLE pools(
     reason varchar(200) not null,
     balance decimal default 0 not null,
     balance_last_updated timestamp,
-    accepted bool default false
+    accepted bool default false,
+    initialized bool default false not null
 );
 
 CREATE TABLE chats(

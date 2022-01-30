@@ -32,6 +32,7 @@ type Pool struct {
 	Balance            float64    `json:"balance,omitempty"`
 	BalanceLastUpdated *time.Time `json:"balance_last_updated,omitempty"`
 	Accepted           bool       `json:"accepted,omitempty"`
+	Initialized        bool       `json:"initialized,omitempty"`
 }
 
 const poolExists = "SELECT * FROM pools WHERE id=$1"
@@ -42,7 +43,7 @@ func (p *Pool) Exists() (bool, error) {
 		return false, errors.New("missing pool id")
 	}
 	if err := database.DB.QueryRow(context.Background(), poolExists, p.ID).
-		Scan(&p.ID, &p.Address, &p.Mediator, &p.Bettor, &p.Caller, &p.BetterState, &p.CallerState, &p.ThresholdKey, &p.CreatedAt, &p.Reason, &p.Balance, &p.BalanceLastUpdated, &p.Accepted); err != nil {
+		Scan(&p.ID, &p.Address, &p.Mediator, &p.Bettor, &p.Caller, &p.BetterState, &p.CallerState, &p.ThresholdKey, &p.CreatedAt, &p.Reason, &p.Balance, &p.BalanceLastUpdated, &p.Accepted, &p.Initialized); err != nil {
 		return false, err
 	}
 
@@ -89,9 +90,9 @@ func (p *Pool) Close() error {
 	return err
 }
 
-const updatePool = "UPDATE pools SET bettor_state=$2, caller_state=$3, threshold_key=$4, accepted=$5 WHERE id=$1"
+const updatePool = "UPDATE pools SET bettor_state=$2, caller_state=$3, threshold_key=$4, accepted=$5, initialized=$6 WHERE id=$1"
 
 func (p *Pool) Update() error {
-	_, err := database.DB.Exec(context.Background(), updatePool, p.ID, p.BetterState, p.CallerState, p.ThresholdKey, p.Accepted)
+	_, err := database.DB.Exec(context.Background(), updatePool, p.ID, p.BetterState, p.CallerState, p.ThresholdKey, p.Accepted, p.Initialized)
 	return err
 }

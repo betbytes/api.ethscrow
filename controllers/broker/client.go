@@ -24,6 +24,7 @@ const (
 	Chat
 	PoolDetails
 	RefreshBalance
+	GeneratingEscrow
 	Offer
 	Answer
 	OfferCandidate
@@ -95,6 +96,7 @@ func (c *Client) Read() {
 			chat.From = c.Username
 			chat.ID = strings.ReplaceAll(uuid.New().String(), "-", "")
 			if json.Unmarshal(msg.Body, &chat) == nil {
+				c.PoolComm.Pool.Chats = append(c.PoolComm.Pool.Chats, *chat)
 				if chat.Important {
 					_ = c.PoolComm.Log(chat)
 				}
