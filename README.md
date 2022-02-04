@@ -23,7 +23,8 @@
 ```sql
 CREATE TABLE users(
     username varchar(20) not null primary key,
-    public_key bytea not null unique,
+    public_key char(182) not null unique,
+    enc_public_key char(182) not null,
     email varchar(50),
     created_at timestamp default now()
 );

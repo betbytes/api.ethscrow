@@ -108,6 +108,9 @@ func (c *Client) Read() {
 		case RefreshBalance:
 			msg.Body = []byte{}
 			break
+		case Offer, Answer, OfferCandidate, AnswerCandidate:
+			msg.From = &c.Username
+			break
 		}
 
 		c.PoolComm.Broadcast <- msg

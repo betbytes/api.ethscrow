@@ -83,7 +83,7 @@ func SubmitChallenge(w http.ResponseWriter, r *http.Request) {
 		session, _ := session2.Store.Get(r, "session.id")
 		session.Values["authenticated"] = true
 		session.Values["username"] = user.Username
-		session.Values["public_key"] = user.PublicKey
+		session.Values["enc_public_key"] = user.EncPublicKey
 		if err = session.Save(r, w); err != nil {
 			utils.Error(w, http.StatusInternalServerError, err.Error())
 			return

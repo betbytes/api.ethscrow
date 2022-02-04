@@ -8,10 +8,11 @@ import (
 )
 
 type User struct {
-	Username  string    `json:"username,omitempty"`
-	PublicKey string    `json:"public_key,omitempty"`
-	Email     *string   `json:"email,omitempty"`
-	CreatedAt time.Time `json:"created_at,omitempty"`
+	Username     string    `json:"username,omitempty"`
+	PublicKey    string    `json:"public_key,omitempty"`
+	EncPublicKey string    `json:"enc_public_key,omitempty"`
+	Email        *string   `json:"email,omitempty"`
+	CreatedAt    time.Time `json:"created_at,omitempty"`
 }
 
 type Friend struct {
@@ -19,24 +20,24 @@ type Friend struct {
 	PublicKey string `json:"public_key,omitempty"`
 }
 
-const createSQL = "INSERT INTO users VALUES($1, $2, $3)"
+const createSQL = "INSERT INTO users (username, public_key, enc_public_key, email) VALUES($1, $2, $3, $4)"
 
 func (u *User) Create() error {
 	if u.Username == "" || u.PublicKey == "" {
 		return errors.New("missing username")
 	}
 
-	_, err := database.DB.Exec(context.Background(), createSQL, u.Username, u.PublicKey, u.Email)
+	_, err := database.DB.Exec(context.Background(), createSQL, u.Username, u.PublicKey, u.EncPublicKey, u.Email)
 	return err
 }
 
-const existSQL = "SELECT username, public_key, email FROM users WHERE username=$1"
+const existSQL = "SELECT username, public_key, enc_public_key, email FROM users WHERE username=$1"
 
 func (u *User) Exists() (bool, error) {
 	if u.Username == "" {
 		return false, errors.New("missing username")
 	}
-	if err := database.DB.QueryRow(context.Background(), existSQL, u.Username).Scan(&u.Username, &u.PublicKey, &u.Email); err != nil {
+	if err := database.DB.QueryRow(context.Background(), existSQL, u.Username).Scan(&u.Username, &u.PublicKey, &u.EncPublicKey, &u.Email); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -77,10 +78,10 @@ func (u *User) GetFriends() ([]Friend, error) {
 	return friends, nil
 }
 
-const getPublicKey = "SELECT public_key FROM users WHERE username=$1"
+const getPublicKey = "SELECT enc_public_key FROM users WHERE username=$1"
 
 func (u *User) GetPublicKey() error {
-	if err := database.DB.QueryRow(context.Background(), getPublicKey, u.Username).Scan(&u.PublicKey); err != nil {
+	if err := database.DB.QueryRow(context.Background(), getPublicKey, u.Username).Scan(&u.EncPublicKey); err != nil {
 		return err
 	}
 	return nil

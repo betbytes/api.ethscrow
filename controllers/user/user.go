@@ -61,7 +61,7 @@ func AllPools(w http.ResponseWriter, r *http.Request) {
 func CreateUser(w http.ResponseWriter, r *http.Request) {
 	user := &models.User{}
 
-	if err := utils.ParseRequestBody(r, user); err != nil || user.Username == "" || user.PublicKey == "" {
+	if err := utils.ParseRequestBody(r, user); err != nil || user.Username == "" || user.PublicKey == "" || user.EncPublicKey == "" {
 		utils.Error(w, http.StatusBadRequest, "Invalid request.")
 		return
 	}
@@ -74,7 +74,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	session, _ := session2.Store.Get(r, "session.id")
 	session.Values["authenticated"] = true
 	session.Values["username"] = user.Username
-	session.Values["public_key"] = user.PublicKey
+	session.Values["enc_public_key"] = user.EncPublicKey
 	if err := session.Save(r, w); err != nil {
 		utils.Error(w, http.StatusInternalServerError, err.Error())
 		return

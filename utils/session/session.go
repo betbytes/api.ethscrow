@@ -25,8 +25,8 @@ func ProtectedRoute(next http.Handler) http.Handler {
 			return
 		} else {
 			user := &models.User{
-				Username:  session.Values["username"].(string),
-				PublicKey: session.Values["public_key"].(string),
+				Username:     session.Values["username"].(string),
+				EncPublicKey: session.Values["enc_public_key"].(string),
 			}
 			ctx := context.WithValue(r.Context(), "user", *user)
 			next.ServeHTTP(w, r.WithContext(ctx))
