@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/websocket"
 	"log"
 	"strings"
+	"time"
 )
 
 type Client struct {
@@ -29,6 +30,7 @@ const (
 	Answer
 	OfferCandidate
 	AnswerCandidate
+	InitializePool
 )
 
 type InitialBody struct {
@@ -71,6 +73,15 @@ type Message struct {
 	From *string         `json:"-"`
 }
 
+type InitializedPool struct {
+	Address string `json:"address"`
+}
+
+type BalanceResponse struct {
+	Balance   int64     `json:"balance"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 func (m *Message) String() string {
 	return fmt.Sprintf("Type: %d Message: %s", m.Type, string(m.Body))
 }
@@ -106,10 +117,33 @@ func (c *Client) Read() {
 			msg.Body = chatMarshal
 			break
 		case RefreshBalance:
-			msg.Body = []byte{}
+			if c.PoolComm.Pool.UpdateBalance() != nil {
+				log.Println("Couldn't update wallet balance.")
+			}
+
+			balance := &BalanceResponse{
+				Balance:   c.PoolComm.Pool.Balance,
+				UpdatedAt: *c.PoolComm.Pool.BalanceLastUpdated,
+			}
+			msg.Body, err = json.Marshal(balance)
+			if err != nil {
+				log.Println("Failed to marshal balance.")
+				return
+			}
 			break
-		case Offer, Answer, OfferCandidate, AnswerCandidate:
+		case Offer, Answer, OfferCandidate, AnswerCandidate, GeneratingEscrow:
 			msg.From = &c.Username
+			break
+		case InitializePool:
+			initiated := &InitializedPool{}
+			if json.Unmarshal(msg.Body, &initiated) == nil {
+				c.PoolComm.Pool.Address = &initiated.Address
+				c.PoolComm.Pool.Initialized = true
+				if c.PoolComm.Pool.Update() != nil {
+					log.Println("Error updating pool")
+					return
+				}
+			}
 			break
 		}
 

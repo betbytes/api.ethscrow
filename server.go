@@ -5,6 +5,7 @@ import (
 	"api.ethscrow/utils"
 	"api.ethscrow/utils/database"
 	"api.ethscrow/utils/session"
+	"api.ethscrow/utils/wallet"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -41,6 +42,11 @@ func createRoute() *chi.Mux {
 
 func main() {
 	if err := utils.SetParams(); err != nil {
+		log.Println(err)
+		return
+	}
+
+	if err := wallet.SetupEthClient(); err != nil {
 		log.Println(err)
 		return
 	}

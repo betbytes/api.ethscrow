@@ -40,7 +40,7 @@ CREATE TABLE pools(
     threshold_key varchar(300),
     created_at timestamp default now(),
     reason varchar(200) not null,
-    balance decimal default 0 not null,
+    balance bigint default 0 not null,
     balance_last_updated timestamp,
     accepted bool default false,
     initialized bool default false not null

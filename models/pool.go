@@ -2,8 +2,10 @@ package models
 
 import (
 	"api.ethscrow/utils/database"
+	"api.ethscrow/utils/wallet"
 	"context"
 	"errors"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
 	"strings"
 	"time"
@@ -29,10 +31,25 @@ type Pool struct {
 	Reason             string     `json:"reason,omitempty"`
 	Chats              []Chat     `json:"chats"`
 	CreatedAt          time.Time  `json:"created_at,omitempty"`
-	Balance            float64    `json:"balance,omitempty"`
+	Balance            int64      `json:"balance,omitempty"`
 	BalanceLastUpdated *time.Time `json:"balance_last_updated,omitempty"`
 	Accepted           bool       `json:"accepted,omitempty"`
 	Initialized        bool       `json:"initialized,omitempty"`
+}
+
+const updatePoolBalance = "UPDATE pools SET balance=$2, balance_last_updated=$3 WHERE id=$1"
+
+func (p *Pool) UpdateBalance() error {
+	balance, err := wallet.Network.BalanceAt(context.Background(), common.HexToAddress(*p.Address), nil)
+	if err != nil {
+		return err
+	}
+	p.Balance = balance.Int64()
+	now := time.Now()
+	p.BalanceLastUpdated = &now
+
+	_, err = database.DB.Exec(context.Background(), updatePoolBalance, p.ID, p.Balance, p.BalanceLastUpdated)
+	return err
 }
 
 const poolExists = "SELECT * FROM pools WHERE id=$1"
@@ -90,9 +107,9 @@ func (p *Pool) Close() error {
 	return err
 }
 
-const updatePool = "UPDATE pools SET bettor_state=$2, caller_state=$3, threshold_key=$4, accepted=$5, initialized=$6 WHERE id=$1"
+const updatePool = "UPDATE pools SET bettor_state=$2, caller_state=$3, threshold_key=$4, accepted=$5, initialized=$6, address=$7 WHERE id=$1"
 
 func (p *Pool) Update() error {
-	_, err := database.DB.Exec(context.Background(), updatePool, p.ID, p.BetterState, p.CallerState, p.ThresholdKey, p.Accepted, p.Initialized)
+	_, err := database.DB.Exec(context.Background(), updatePool, p.ID, p.BetterState, p.CallerState, p.ThresholdKey, p.Accepted, p.Initialized, p.Address)
 	return err
 }

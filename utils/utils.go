@@ -11,12 +11,14 @@ import (
 var PORT string
 var SESSION_KEY string
 var DATABASE_URL string
+var ETHNET_URL string
 
 func SetParams() error {
 	err := godotenv.Load()
 	PORT = os.Getenv("PORT")
 	SESSION_KEY = os.Getenv("SESSION_KEY")
 	DATABASE_URL = os.Getenv("DATABASE_URL")
+	ETHNET_URL = os.Getenv("ETHNET_URL")
 	return err
 
 }
