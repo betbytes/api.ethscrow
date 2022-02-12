@@ -26,7 +26,7 @@ type Pool struct {
 	BetterState        int16      `json:"betterState,omitempty"`
 	Caller             string     `json:"caller_username,omitempty"`
 	CallerState        int16      `json:"callerState,omitempty"`
-	Mediator           *string    `json:"mediator_username,omitempty"`
+	Mediator           string     `json:"mediator_username,omitempty"`
 	ThresholdKey       *string    `json:"threshold_key,omitempty"`
 	Reason             string     `json:"reason,omitempty"`
 	Chats              []Chat     `json:"chats"`

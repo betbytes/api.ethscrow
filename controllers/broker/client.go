@@ -37,6 +37,7 @@ type InitialBody struct {
 	Type               MessageEnum  `json:"type"`
 	Pool               *models.Pool `json:"pool"`
 	OtherUserConnected bool         `json:"other_user_connected"`
+	MediatorPublicKey  string       `json:"mediator_public_key"`
 }
 
 // ConnectBody body of connect message type

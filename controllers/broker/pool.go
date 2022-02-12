@@ -57,12 +57,18 @@ func (p *PoolComm) Start() {
 						otherUsername = p.Pool.Caller
 					}
 
+					mediator := &models.User{
+						Username: p.Pool.Mediator,
+					}
+					err = mediator.GetPublicKey()
+
 					_, otherActive := p.ActiveUsers[otherUsername]
 
 					init := &InitialBody{
 						Type:               PoolDetails,
 						Pool:               p.Pool,
 						OtherUserConnected: otherActive,
+						MediatorPublicKey:  mediator.EncPublicKey,
 					}
 
 					initJson, _ := json.Marshal(init)

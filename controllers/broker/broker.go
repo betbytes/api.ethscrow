@@ -55,7 +55,7 @@ func ConnectToPool(w http.ResponseWriter, r *http.Request) {
 		poolComm.Pool = pool
 	}
 
-	if exists && (pool.Bettor != user.Username && pool.Caller != user.Username && *pool.Mediator != user.Username) {
+	if exists && (pool.Bettor != user.Username && pool.Caller != user.Username && pool.Mediator != user.Username) {
 		utils.Error(w, http.StatusForbidden, "You are not part of the pool.")
 		return
 	} else if !exists {
@@ -144,7 +144,7 @@ func UpdatePoolState(w http.ResponseWriter, r *http.Request) {
 	}
 
 	exists, _ := pool.Exists()
-	if exists && (pool.Bettor != user.Username || pool.Caller != user.Username || *pool.Mediator != user.Username) {
+	if exists && (pool.Bettor != user.Username || pool.Caller != user.Username || pool.Mediator != user.Username) {
 		utils.Error(w, http.StatusForbidden, "You are not part of the pool.")
 		return
 	} else if !exists {
@@ -216,7 +216,7 @@ func ResolveConflict(w http.ResponseWriter, r *http.Request) {
 	}
 
 	exists, _ := pool.Exists()
-	if exists && *pool.Mediator != user.Username {
+	if exists && pool.Mediator != user.Username {
 		utils.Error(w, http.StatusForbidden, "You are not part of the pool.")
 		return
 	} else if !exists {
