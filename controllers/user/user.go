@@ -42,11 +42,15 @@ func AllPools(w http.ResponseWriter, r *http.Request) {
 	resp.Inbox = make([]models.Pool, 0)
 
 	for _, pool := range pools {
+		if pool.Mediator != user.Username {
+			pool.ConflictTempData = nil
+		}
+
 		if pool.CallerState == broker.LostState || pool.BetterState == broker.LostState {
 			resp.Completed = append(resp.Completed, pool)
 		} else if pool.Accepted {
 			resp.Active = append(resp.Active, pool)
-		} else if pool.Mediator == user.Username && pool.BetterState == broker.WonState && pool.CallerState == broker.WonState {
+		} else if pool.Mediator == user.Username && ((pool.BetterState == broker.WonState && pool.CallerState == broker.WonState) || pool.CallerState == broker.ConflictState || pool.BetterState == broker.ConflictState) {
 			resp.Resolve = append(resp.Resolve, pool)
 		} else if pool.Bettor == user.Username {
 			resp.Sent = append(resp.Sent, pool)

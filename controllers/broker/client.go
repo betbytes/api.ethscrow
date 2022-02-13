@@ -31,6 +31,7 @@ const (
 	OfferCandidate
 	AnswerCandidate
 	InitializePool
+	PoolStateChange
 )
 
 type InitialBody struct {

@@ -3,9 +3,11 @@ package broker
 import (
 	"api.ethscrow/models"
 	"api.ethscrow/utils"
+	"encoding/json"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -144,30 +146,11 @@ func UpdatePoolState(w http.ResponseWriter, r *http.Request) {
 	}
 
 	exists, _ := pool.Exists()
-	if exists && (pool.Bettor != user.Username || pool.Caller != user.Username || pool.Mediator != user.Username) {
+	if exists && pool.Bettor != user.Username && pool.Caller != user.Username && pool.Mediator != user.Username {
 		utils.Error(w, http.StatusForbidden, "You are not part of the pool.")
 		return
 	} else if !exists {
 		utils.Error(w, http.StatusForbidden, "Pool doesn't exist.")
-		return
-	}
-
-	// If pool is in conflict
-	if pool.BetterState != ConflictState || pool.CallerState != ConflictState {
-		utils.JSON(w, http.StatusConflict, pool)
-		return
-	}
-
-	// if pool's winner is already set
-	if pool.ThresholdKey != nil {
-		utils.JSON(w, http.StatusAlreadyReported, pool)
-		return
-	}
-
-	state := &stateChangeRequest{}
-
-	if err := utils.ParseRequestBody(r, &state); err != nil || state.NewState == 0 {
-		utils.Error(w, http.StatusBadRequest, "Invalid request.")
 		return
 	}
 
@@ -179,6 +162,25 @@ func UpdatePoolState(w http.ResponseWriter, r *http.Request) {
 		currentUserPoolState = &pool.BetterState
 	}
 
+	state := &stateChangeRequest{}
+
+	if err := utils.ParseRequestBody(r, &state); err != nil || state.NewState == 0 {
+		utils.Error(w, http.StatusBadRequest, "Invalid request.")
+		return
+	}
+
+	// If pool is in conflict
+	if *otherUserPoolState == ConflictState && (state.NewState == ConflictState || state.NewState == WonState) {
+		utils.JSON(w, http.StatusConflict, pool)
+		return
+	}
+
+	// if pool's winner is already set
+	if pool.ThresholdKey != nil && pool.BetterState != ConflictState && pool.CallerState != ConflictState {
+		utils.JSON(w, http.StatusAlreadyReported, pool)
+		return
+	}
+
 	if state.NewState == LostState && state.ThresholdKey != nil { // user lost
 		pool.ThresholdKey = state.ThresholdKey
 		*currentUserPoolState = LostState
@@ -186,17 +188,29 @@ func UpdatePoolState(w http.ResponseWriter, r *http.Request) {
 	} else if state.NewState == WonState && *otherUserPoolState == NeutralState { // user won and other user undecided
 		*currentUserPoolState = WonState
 	} else if state.NewState == WonState && *otherUserPoolState == WonState || state.NewState == ConflictState { // user won and other user also won
-		pool.CallerState = ConflictState
-		pool.BetterState = ConflictState
+		*currentUserPoolState = ConflictState
 		pool.ThresholdKey = state.ThresholdKey
+		pool.ConflictTempData = state.PlainThresholdKey
 	} else {
 		utils.Error(w, http.StatusBadRequest, "Invalid state change.")
 		return
 	}
 
-	if pool.Update() != nil {
-		utils.JSON(w, http.StatusInternalServerError, "Failed to update pool state.")
+	if err := pool.Update(); err != nil {
+		utils.Error(w, http.StatusInternalServerError, err.Error())
 		return
+	}
+
+	if poolComm, ok := ActivePools[pool.ID]; ok {
+		poolJson, err := json.Marshal(pool)
+		if err != nil {
+			log.Println(err)
+		}
+		msg := &Message{
+			Type: PoolStateChange,
+			Body: poolJson,
+		}
+		poolComm.Broadcast <- msg
 	}
 
 	utils.JSON(w, http.StatusAccepted, pool)
@@ -244,7 +258,8 @@ func ResolveConflict(w http.ResponseWriter, r *http.Request) {
 		pool.CallerState = WonState
 	}
 
-	*pool.ThresholdKey = resolution.ThresholdKey
+	pool.ThresholdKey = &resolution.ThresholdKey
+	pool.ConflictTempData = nil
 
 	if pool.Update() != nil {
 		utils.JSON(w, http.StatusInternalServerError, "Failed to update pool state.")
