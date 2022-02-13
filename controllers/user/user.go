@@ -50,12 +50,14 @@ func AllPools(w http.ResponseWriter, r *http.Request) {
 			resp.Completed = append(resp.Completed, pool)
 		} else if pool.Accepted {
 			resp.Active = append(resp.Active, pool)
-		} else if pool.Mediator == user.Username && ((pool.BetterState == broker.WonState && pool.CallerState == broker.WonState) || pool.CallerState == broker.ConflictState || pool.BetterState == broker.ConflictState) {
-			resp.Resolve = append(resp.Resolve, pool)
 		} else if pool.Bettor == user.Username {
 			resp.Sent = append(resp.Sent, pool)
 		} else {
 			resp.Inbox = append(resp.Inbox, pool)
+		}
+
+		if pool.Mediator == user.Username && ((pool.BetterState == broker.WonState && pool.CallerState == broker.WonState) || pool.CallerState == broker.ConflictState || pool.BetterState == broker.ConflictState) {
+			resp.Resolve = append(resp.Resolve, pool)
 		}
 	}
 
