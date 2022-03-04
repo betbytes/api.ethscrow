@@ -224,7 +224,12 @@ func ResolveConflict(w http.ResponseWriter, r *http.Request) {
 
 	resolution := &resolveConflictRequest{}
 
-	if err := utils.ParseRequestBody(r, &resolution); err != nil || resolution.WinnerUsername == "" || resolution.ThresholdKey != "" {
+	if err := utils.ParseRequestBody(r, &resolution); err != nil {
+		utils.Error(w, http.StatusBadRequest, "Invalid request.")
+		return
+	}
+
+	if resolution.WinnerUsername == "" || resolution.ThresholdKey == "" {
 		utils.Error(w, http.StatusBadRequest, "Invalid request.")
 		return
 	}
@@ -239,7 +244,7 @@ func ResolveConflict(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// pool is not in conflict
-	if pool.BetterState != ConflictState || pool.CallerState != ConflictState {
+	if pool.BetterState != ConflictState && pool.CallerState != ConflictState {
 		utils.Error(w, http.StatusForbidden, "Not in conflict.")
 		return
 	}
