@@ -3,11 +3,18 @@ package broker
 import (
 	"api.ethscrow/models"
 	"api.ethscrow/utils"
+	"api.ethscrow/utils/wallet"
+	"context"
 	"encoding/json"
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"io"
 	"log"
+	"math/big"
 	"net/http"
 	"strings"
 )
@@ -272,4 +279,98 @@ func ResolveConflict(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.JSON(w, http.StatusAccepted, pool)
+}
+
+func GenerateTransaction(w http.ResponseWriter, r *http.Request) {
+	user := r.Context().Value("user").(models.User)
+	pool := &models.Pool{
+		ID: chi.URLParam(r, "PoolId"),
+	}
+
+	exists, _ := pool.Exists()
+	if exists && pool.Caller != user.Username && pool.Bettor != user.Username {
+		utils.Error(w, http.StatusForbidden, "You are not part of the pool.")
+		return
+	} else if !exists {
+		utils.Error(w, http.StatusForbidden, "Pool doesn't exist.")
+		return
+	}
+
+	balance, err := wallet.Network.BalanceAt(context.Background(), common.HexToAddress(*pool.Address), nil)
+	if err != nil {
+		utils.Error(w, http.StatusBadRequest, "Invalid request.")
+		return
+	}
+
+	transaction := &transactionRequest{}
+	if err = utils.ParseRequestBody(r, &transaction); err != nil {
+		utils.Error(w, http.StatusBadRequest, "Invalid request.")
+		return
+	}
+
+	to := common.HexToAddress(transaction.To)
+	from := common.HexToAddress(*pool.Address)
+	gasPrice, err := wallet.Network.SuggestGasPrice(context.Background())
+	balance = new(big.Int).Sub(balance, new(big.Int).Mul(wallet.Gas, gasPrice))
+
+	msg := ethereum.CallMsg{
+		From:     from,
+		To:       &to,
+		GasPrice: gasPrice,
+		Value:    balance,
+		Data:     nil,
+	}
+
+	gasLimit, err := wallet.Network.EstimateGas(context.Background(), msg)
+	if err != nil {
+		utils.Error(w, http.StatusBadRequest, "Invalid request.")
+		return
+	}
+
+	nonce, err := wallet.Network.PendingNonceAt(context.Background(), from)
+	if err != nil {
+		utils.Error(w, http.StatusBadRequest, "Invalid request.")
+		return
+	}
+
+	newTx := types.NewTransaction(nonce, to, balance, gasLimit, gasPrice, nil)
+
+	if err != nil {
+		utils.Error(w, http.StatusBadRequest, "Invalid request.")
+		return
+	}
+
+	txJson, err := newTx.MarshalJSON()
+	networkID, err := wallet.Network.NetworkID(context.Background())
+	if err != nil {
+		utils.Error(w, http.StatusBadRequest, "Invalid request.")
+		return
+	}
+
+	utils.JSON(w, http.StatusOK, &transactionResponse{
+		Transaction: txJson,
+		NetworkID:   networkID.Int64(),
+	})
+}
+
+func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
+	transactionBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		utils.Error(w, http.StatusBadRequest, "Invalid request.")
+		return
+	}
+
+	signedTx := new(types.Transaction)
+	err = signedTx.UnmarshalJSON(transactionBytes)
+	if err != nil {
+		utils.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err = wallet.Network.SendTransaction(context.Background(), signedTx); err != nil {
+		utils.Error(w, http.StatusConflict, err.Error())
+		return
+	}
+
+	utils.JSON(w, http.StatusAccepted, &transactionProcessingResponse{Hash: signedTx.Hash().String()})
 }
