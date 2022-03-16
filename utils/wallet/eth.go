@@ -9,7 +9,7 @@ import (
 
 var Network *ethclient.Client
 var GweiToEth = int64(1000000000)
-var Gas = new(big.Int).SetInt64(31001)
+var Gas = new(big.Int).SetInt64(21000)
 
 func SetupEthClient() error {
 	cli, err := ethclient.Dial(utils.ETHNET_URL) // TODO:Switch to mainnet when ready
