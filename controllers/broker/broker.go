@@ -217,6 +217,7 @@ func UpdatePoolState(w http.ResponseWriter, r *http.Request) {
 			Type: PoolStateChange,
 			Body: poolJson,
 		}
+		poolComm.Pool = pool
 		poolComm.Broadcast <- msg
 	}
 
@@ -276,6 +277,19 @@ func ResolveConflict(w http.ResponseWriter, r *http.Request) {
 	if pool.Update() != nil {
 		utils.JSON(w, http.StatusInternalServerError, "Failed to update pool state.")
 		return
+	}
+
+	if poolComm, ok := ActivePools[pool.ID]; ok {
+		poolJson, err := json.Marshal(pool)
+		if err != nil {
+			log.Println(err)
+		}
+		msg := &Message{
+			Type: PoolStateChange,
+			Body: poolJson,
+		}
+		poolComm.Pool = pool
+		poolComm.Broadcast <- msg
 	}
 
 	utils.JSON(w, http.StatusAccepted, pool)
