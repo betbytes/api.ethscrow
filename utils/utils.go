@@ -3,7 +3,6 @@ package utils
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/joho/godotenv"
 	"net/http"
 	"os"
 )
@@ -14,13 +13,13 @@ var DATABASE_URL string
 var ETHNET_URL string
 
 func SetParams() error {
-	err := godotenv.Load()
+	//err := godotenv.Load()
 	PORT = os.Getenv("PORT")
 	SESSION_KEY = os.Getenv("SESSION_KEY")
 	DATABASE_URL = os.Getenv("DATABASE_URL")
 	ETHNET_URL = os.Getenv("ETHNET_URL")
-	return err
-
+	//return err
+	return nil
 }
 
 type ErrorMessage struct {
