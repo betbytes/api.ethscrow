@@ -2,6 +2,8 @@ module api.ethscrow
 
 go 1.18
 
+// +heroku goVersion go1.18
+
 require (
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/btcsuite/btcd v0.20.1-beta // indirect
