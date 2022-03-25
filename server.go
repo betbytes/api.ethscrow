@@ -32,6 +32,10 @@ func createRoute() *chi.Mux {
 		middleware.Throttle(20), // due to database connection limit
 	)
 
+	router.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
+		utils.String(w, http.StatusOK, "running.")
+	})
+
 	router.Route("/", func(r chi.Router) {
 		r.Mount("/broker", routes.BrokerRoutes())
 		r.Mount("/user", routes.UserRoutes())
